@@ -1,0 +1,65 @@
+1. Create a field on Account named "Number of Contacts". Populate this field with the number of contacts related to an account. 
+
+Trigger Code
+
+trigger ContactCount on Contact (after Insert,after Delete,after Undelete, after Update) {
+    ChildCountRollUp  obj = new ChildCountRollUp();
+    
+    if ((Trigger.IsInsert) || (Trigger.IsUndelete)){
+        obj.countAddContacts(Trigger.New);
+    }
+    
+    if (Trigger.IsDelete){
+        obj.countDeleteContacts(Trigger.Old);
+    }
+}
+
+Class Code:
+/*
+Class Name: ChildCountRollUp
+Purpose: To count the number of childs of a contact and update Number of Contacts in Parent
+Author : shivam
+Date Created: 4th July 2019
+*/
+//Triigger to count child objects and display in Parent
+public class ChildCountRollUp {
+    Set<ID> accId = new Set<ID>();
+    //Taking Trigger.New as an argument from Trigger to update the Account field on insertion
+    public void countAddContacts(list<Contact> conID){
+        
+        
+        for(Contact con: conId){
+        
+            accId.add(con.AccountID);
+        }
+        
+        List<Account> accLst = [select Id,Number_of_contacts__c from Account where ID IN :accId];
+        List<Contact> conLst = [select ID from Contact where AccountID IN :accId];
+        
+        for(Account acc2 : accLst){
+        
+            acc2.Number_of_contacts__c=conLst.Size();
+            System.debug(conLst.Size());
+        }
+        Database.Update(accLst);
+    }
+    //Taking Trigger.Old as an argument from Trigger to update the Account field on deletion
+    public void countDeleteContacts(list<Contact> conID){
+        
+        for(Contact con1: conID){
+        
+            accId.add(con1.AccountID);
+        }         
+        
+        List<Account> accList = [select Id,Number_of_Contacts__c from Account where ID IN :accId];
+        List<Contact> conList = [select ID from Contact where AccountID IN :accId];
+        
+        for(Account a:accList){
+        
+            a.Number_of_Contacts__c=conList.Size();
+        }
+        Database.Update(acclist);
+    }
+    
+    
+}
